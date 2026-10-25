@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: mini-projet
+data:
+  DB_HOST: "db-service"
+  DB_PORT: "5432"
+  DB_NAME: "appdb"
+  API_PORT: "3000"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: mini-projet
+type: Opaque
+stringData:
+  POSTGRES_USER: "appuser"
+  POSTGRES_PASSWORD: "ChangeMe-123"
