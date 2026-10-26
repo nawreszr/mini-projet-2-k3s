@@ -118,8 +118,6 @@ Le vrai `secret.yaml` est dans le `.gitignore` : seul `secret.example.yaml` (fau
 
 Application testée en local (Docker Compose ou base dans un conteneur) : création, lecture, modification et suppression d'une donnée depuis l'interface.
 
-![Application testée en local (CRUD)](captures/01-app-locale.png)
-
 ### Phase 1 : conteneurisation et publication (E1)
 
 Un Dockerfile par composant, utilisateur non-root, images **versionnées** (`:1.0.0`).
@@ -153,13 +151,9 @@ docker build -t <compte>/<application>-db:1.0.0 ./app/db   # si image de base pe
 docker push <compte>/<application>-api:1.0.0
 ```
 
-![Images Docker versionnées](captures/02-images-docker.png)
-
 ### Phase 2 : namespace, quotas et limites (E2)
 
 _(aucun manifeste trouvé dans `k8s/00-namespace`)_
-
-![ResourceQuota et valeurs par défaut du LimitRange](captures/03-quota-limitrange.png)
 
 ### Phase 3 : ConfigMap et Secret (E3, E4)
 
@@ -167,15 +161,11 @@ _(aucun manifeste trouvé dans `k8s/00-namespace`)_
 
 _(aucun manifeste trouvé dans `k8s/10-config`)_
 
-![ConfigMap, Secret et dépôt sans mot de passe réel](captures/04-configmap-secret.png)
-
 ### Phase 4 : base de données en StatefulSet (E5)
 
 Service headless `db`, `StatefulSet` avec `volumeClaimTemplates` (1 Gi, `local-path`), `PGDATA` dans un sous-dossier du point de montage et readiness probe `pg_isready`.
 
 _(aucun manifeste trouvé dans `k8s/20-db`)_
-
-![StatefulSet et PVC en Bound](captures/05-statefulset-pvc.png)
 
 ### Phase 5 : API et frontend (E7, E8, E9)
 
@@ -183,13 +173,9 @@ API en 2 réplicas, configuration injectée par `envFrom` et `secretKeyRef`, ini
 
 _(aucun manifeste trouvé dans `k8s/30-app`)_
 
-![Pods Running et Ready, logs de l API](captures/06-pods-ready.png)
-
 ### Phase 6 : Ingress (E10)
 
 Seul le frontend est exposé sur `app.k3s.local`.
-
-![Application accessible sur app.k3s.local](captures/07-application-navigateur.png)
 
 ### Phase 7 : persistance et résilience (E6)
 
@@ -200,8 +186,6 @@ kubectl -n mini-projet delete pod db-0
 kubectl -n mini-projet get pods -w
 ```
 
-![Suppression de db-0, données conservées](captures/08-persistance.png)
-
 ### Phase 8 : sauvegarde planifiée et restauration (E11)
 
 Un `CronJob` exécute `pg_dump` vers `backup-pvc` (toutes les 5 minutes pour la démonstration). Le test immédiat se fait avec :
@@ -210,10 +194,6 @@ Un `CronJob` exécute `pg_dump` vers `backup-pvc` (toutes les 5 minutes pour la 
 kubectl -n mini-projet create job --from=cronjob/db-backup test-backup
 kubectl -n mini-projet logs job/test-backup
 ```
-
-![CronJob et fichier de sauvegarde](captures/09-sauvegarde-cronjob.png)
-
-![Restauration validée](captures/10-restauration.png)
 
 La procédure complète de restauration est décrite à la [section 5](#5-procédure-de-sauvegarde-et-de-restauration).
 
@@ -227,8 +207,6 @@ kubectl auth can-i delete pods --as=system:serviceaccount:mini-projet:dev-viewer
 kubectl auth can-i get secrets --as=system:serviceaccount:mini-projet:dev-viewer -n mini-projet   # no
 ```
 
-![Droits du compte dev-viewer (auth can-i)](captures/11-rbac-auth-can-i.png)
-
 ### Phase 10 : durcissement et NetworkPolicies (E13, E14)
 
 Pods applicatifs : `runAsNonRoot: true`, `allowPrivilegeEscalation: false`, `capabilities.drop: ["ALL"]`, `readOnlyRootFilesystem: true` quand c'est possible (avec `emptyDir` sur `/tmp` et le cache nginx). Le namespace applique `pod-security.kubernetes.io/enforce=baseline`.
@@ -237,13 +215,7 @@ Manifestes de sécurité (RBAC, durcissement, NetworkPolicies) :
 
 _(aucun manifeste trouvé dans `k8s/40-security`)_
 
-![Durcissement des Pods et Pod Security](captures/12-pod-security.png)
-
 Tests des NetworkPolicies : depuis un Pod de test **sans** label `tier: api`, la connexion à la base échoue ; depuis le Pod de l'API, elle réussit ; l'application reste utilisable depuis le navigateur.
-
-![Connexion à la base bloquée depuis un Pod non autorisé](captures/13-networkpolicy-bloque.png)
-
-![Connexion à la base réussie depuis l API](captures/14-networkpolicy-autorise.png)
 
 ---
 
